@@ -10,6 +10,7 @@ using workshop.wwwapi.Endpoints;
 using workshop.wwwapi.Models;
 using workshop.wwwapi.Repository.SpecificRepositories;
 using workshop.wwwapi.Repository;
+using workshop.wwwapi.Models.Responses;
 
 namespace workshop.tests
 {
@@ -31,19 +32,19 @@ namespace workshop.tests
             // Arrange
             var prescriptions = new List<Prescription>
             {
-                new Prescription { Id = 1, PatientId = 1, DoctorId = 1, PrescriptionMedicines = new List<PrescriptionMedicine>() },
-                new Prescription { Id = 2, PatientId = 2, DoctorId = 2, PrescriptionMedicines = new List<PrescriptionMedicine>() }
+                new Prescription { Id = 1, PatientId = 1, DoctorId = 1, Appointment = new Appointment { Patient = new Patient { FullName = "John Doe" }, Doctor = new Doctor { FullName = "Dr. Smith" } } },
+                new Prescription { Id = 2, PatientId = 2, DoctorId = 2, Appointment = new Appointment { Patient = new Patient { FullName = "Jane Doe" }, Doctor = new Doctor { FullName = "Dr. Adams" } } }
             };
 
             _mockRepo.Setup(repo => repo.GetAllAsync()).ReturnsAsync(prescriptions);
 
             // Act
-            var result = await PrescriptionEndpoints.GetPrescriptions(_mockRepo.Object) as Ok<IEnumerable<Prescription>>;
+            var result = await PrescriptionEndpoints.GetPrescriptions(_mockRepo.Object) as Ok<List<PrescriptionDTO>>;
 
             // Assert
             Assert.IsNotNull(result);
             Assert.AreEqual(StatusCodes.Status200OK, result.StatusCode);
-            Assert.AreEqual(2, result.Value.Count());
+            Assert.AreEqual(2, result.Value.Count);
         }
 
         [Test]

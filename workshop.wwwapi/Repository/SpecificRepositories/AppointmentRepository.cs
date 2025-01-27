@@ -14,6 +14,14 @@ namespace workshop.wwwapi.Repository
             _context = context;
         }
 
+        public override async Task<IEnumerable<Appointment>> GetAllAsync()
+        {
+            return await _context.Appointments
+                .Include(a => a.Patient)
+                .Include(a => a.Doctor)
+                .ToListAsync();
+        }
+
         public async Task<IEnumerable<Appointment>> GetAppointmentsByDoctorId(int doctorId)
         {
             return await _context.Appointments

@@ -2,6 +2,7 @@
 using workshop.wwwapi.Models;
 using workshop.wwwapi.Repository;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace workshop.wwwapi.Endpoints
 {
@@ -20,22 +21,24 @@ namespace workshop.wwwapi.Endpoints
         public static async Task<IResult> GetPatients(IPatientRepository repository)
         {
             var patients = await repository.GetAllAsync();
+
             var patientDTOs = patients.Select(p => new PatientDTO
             {
                 Id = p.Id,
                 FullName = p.FullName,
-                Appointments = p.Appointments.Select(a => new AppointmentDTO
+                Appointments = p.Appointments?.Select(a => new AppointmentDTO
                 {
                     PatientId = a.PatientId,
                     PatientName = p.FullName,
                     DoctorId = a.DoctorId,
-                    DoctorName = a.Doctor.FullName,
+                    DoctorName = a.Doctor?.FullName ?? "Unknown",
                     Booking = a.Booking
-                }).ToList()
+                }).ToList() ?? new List<AppointmentDTO>()
             }).ToList();
 
             return TypedResults.Ok(patientDTOs);
         }
+
 
         [ProducesResponseType(StatusCodes.Status200OK)]
         public static async Task<IResult> GetSinglePatient(IPatientRepository repository, int id)

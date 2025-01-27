@@ -14,6 +14,18 @@ namespace workshop.wwwapi.Repository.SpecificRepositories
             _context = context;
         }
 
+        public override async Task<IEnumerable<Prescription>> GetAllAsync()
+        {
+            return await _context.Prescriptions
+                .Include(p => p.PrescriptionMedicines)
+                .ThenInclude(pm => pm.Medicine)
+                .Include(p => p.Appointment)
+                    .ThenInclude(a => a.Patient) 
+                .Include(p => p.Appointment)
+                    .ThenInclude(a => a.Doctor) 
+                .ToListAsync();
+        }
+
         public async Task<Prescription> GetPrescriptionWithDetails(int id)
         {
             return await _context.Prescriptions

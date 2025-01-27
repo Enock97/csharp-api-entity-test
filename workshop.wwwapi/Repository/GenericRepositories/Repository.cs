@@ -27,7 +27,7 @@ namespace workshop.wwwapi.Repository.GenericRepositories
             return await _databaseContext.Appointments.Where(a => a.DoctorId == id).ToListAsync();
         }
 
-        public async Task<IEnumerable<T>> GetAllAsync()
+        public virtual async Task<IEnumerable<T>> GetAllAsync()
         {
             return await _dbSet.ToListAsync();
         }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using workshop.wwwapi.Models;
+using workshop.wwwapi.Models.Responses;
 using workshop.wwwapi.Repository;
 using workshop.wwwapi.Repository.SpecificRepositories;
 
@@ -21,7 +22,24 @@ namespace workshop.wwwapi.Endpoints
         public static async Task<IResult> GetPrescriptions(IPrescriptionRepository repository)
         {
             var prescriptions = await repository.GetAllAsync();
-            return TypedResults.Ok(prescriptions);
+
+            var prescriptionDTOs = prescriptions.Select(p => new PrescriptionDTO
+            {
+                Id = p.Id,
+                PatientId = p.PatientId,
+                PatientName = p.Appointment?.Patient?.FullName ?? "Unknown",
+                DoctorId = p.DoctorId,
+                DoctorName = p.Appointment?.Doctor?.FullName ?? "Unknown", 
+                Medicines = p.PrescriptionMedicines?.Select(pm => new PrescriptionMedicineDTO
+                {
+                    MedicineId = pm.MedicineId,
+                    MedicineName = pm.Medicine?.Name ?? "Unknown",
+                    Quantity = pm.Quantity,
+                    Notes = pm.Notes
+                }).ToList() ?? new List<PrescriptionMedicineDTO>()
+            }).ToList();
+
+            return TypedResults.Ok(prescriptionDTOs);
         }
 
         [ProducesResponseType(StatusCodes.Status200OK)]
