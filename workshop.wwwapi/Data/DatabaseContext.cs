@@ -95,12 +95,7 @@ namespace workshop.wwwapi.Data
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            if (!optionsBuilder.IsConfigured)
-            {
-                var connectionString = _configuration.GetConnectionString("DefaultConnectionString");
-                optionsBuilder.UseNpgsql(connectionString);
-                optionsBuilder.LogTo(message => Debug.WriteLine(message)); // Log SQL queries
-            }
+
         }
 
 

@@ -1,58 +1,39 @@
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using workshop.wwwapi.Data;
-using workshop.wwwapi.Repository;
 using workshop.wwwapi.Endpoints;
 using workshop.wwwapi.Repository.GenericRepositories;
 using workshop.wwwapi.Repository.SpecificRepositories;
-using System.Text.Json;
-using System.Text.Json.Serialization.Metadata;
+using workshop.wwwapi.Repository;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.AddDbContext<DatabaseContext>(options =>
-        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnectionString")));
-}
-else if (builder.Environment.IsEnvironment("Testing"))
-{
-    builder.Services.AddDbContext<DatabaseContext>(options =>
-        options.UseInMemoryDatabase("TestDb"));
-}
+builder.Services.AddDbContext<DatabaseContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnectionString")));
 
-// Add detailed logging for debugging
+// Add logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
+// Register repositories
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IPatientRepository, PatientRepository>();
 builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
 builder.Services.AddScoped<IPrescriptionRepository, PrescriptionRepository>();
 
-builder.Services.AddControllers();
-
-builder.Services.ConfigureHttpJsonOptions(options =>
-{
-    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-    options.SerializerOptions.WriteIndented = true;
-    options.SerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
-});
-
-
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.ConfigureEndpointDefaults(listenOptions =>
+// Configure JSON serialization with Newtonsoft
+builder.Services.AddControllers()
+    .AddNewtonsoftJson(options =>
     {
-        listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1;
+        options.SerializerSettings.Formatting = Formatting.Indented;
+        options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
+        options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
     });
-});
-
 
 var app = builder.Build();
 
@@ -64,12 +45,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
+app.UseAuthorization();
+app.MapControllers();
 
-app.UseHttpsRedirection();
 app.ConfigurePatientEndpoints();
 app.ConfigureAppointmentEndpoints();
 app.ConfigureDoctorEndpoints();
 app.ConfigurePrescriptionEndpoints();
+
 app.Run();
 
-public partial class Program { } // needed for testing - please ignore
+public partial class Program { } // Needed for testing

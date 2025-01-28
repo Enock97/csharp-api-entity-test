@@ -18,7 +18,7 @@ namespace workshop.wwwapi.Repository
         {
             return await _context.Patients
                 .Include(p => p.Appointments)
-                .ThenInclude(a => a.Doctor) // Ensure the Doctor is included
+                .ThenInclude(a => a.Doctor)
                 .ToListAsync();
         }
 

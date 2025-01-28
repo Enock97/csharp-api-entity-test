@@ -26,7 +26,7 @@ namespace workshop.wwwapi.Endpoints
             {
                 Id = p.Id,
                 FullName = p.FullName,
-                Appointments = p.Appointments?.Select(a => new AppointmentDTO
+                Appointments = p.Appointments.Select(a => new AppointmentDTO
                 {
                     PatientId = a.PatientId,
                     PatientName = p.FullName,
@@ -36,8 +36,10 @@ namespace workshop.wwwapi.Endpoints
                 }).ToList() ?? new List<AppointmentDTO>()
             }).ToList();
 
-            return TypedResults.Ok(patientDTOs);
+            return TypedResults.Ok(patientDTOs);  // Let ASP.NET Core handle the serialization automatically
         }
+
+
 
 
         [ProducesResponseType(StatusCodes.Status200OK)]

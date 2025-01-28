@@ -14,6 +14,7 @@ using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System.Net;
 using workshop.wwwapi.Repository.SpecificRepositories;
+using Microsoft.Extensions.Hosting;
 
 namespace workshop.tests
 {
@@ -23,43 +24,11 @@ namespace workshop.tests
 
         private Mock<IPatientRepository> _mockRepo;
 
-        private HttpClient _client;
-        private WebApplicationFactory<Program> _factory;
-
         [SetUp]
         public void Setup()
         {
             _mockRepo = new Mock<IPatientRepository>();
-            _factory = new WebApplicationFactory<Program>()
-                .WithWebHostBuilder(builder =>
-                {
-                    builder.ConfigureAppConfiguration((context, config) =>
-                    {
-                        config.AddJsonFile("appsettings.json");
-                    });
-
-                    builder.ConfigureServices((context, services) =>
-                    {
-                        // Set the environment to Testing
-                        context.HostingEnvironment.EnvironmentName = "Testing";
-
-                        // Remove existing DbContext registration (if any)
-                        var descriptor = services.SingleOrDefault(
-                            d => d.ServiceType == typeof(DbContextOptions<DatabaseContext>));
-                        if (descriptor != null)
-                        {
-                            services.Remove(descriptor);
-                        }
-
-                        // Add the InMemory database for testing
-                        services.AddDbContext<DatabaseContext>(options =>
-                            options.UseInMemoryDatabase("TestDb"));
-                    });
-                });
-
-            _client = _factory.CreateClient();
         }
-
 
 
 
@@ -67,6 +36,17 @@ namespace workshop.tests
         public async Task PatientEndpointStatus()
         {
             // Arrange
+            WebApplicationFactory<Program> _factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                builder.ConfigureServices(services =>
+                {
+                    services.AddScoped<IPatientRepository>(_ => _mockRepo.Object);
+                });
+            });
+
+            HttpClient _client = _factory.CreateClient();
+
             var patientExamples = new List<Patient>
             {
                 new Patient { Id = 1, FullName = "John Doe" },
@@ -77,39 +57,21 @@ namespace workshop.tests
 
             // Act
             var response = await _client.GetAsync("/patients");
+
+            Console.WriteLine($"Response Status: {response.StatusCode}");
+
+            // Assert
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);  // Ensure status is OK
+
             var responseBody = await response.Content.ReadAsStringAsync();
 
-            // Debugging logs
-            Console.WriteLine($"Response Status: {response.StatusCode}");
-            Console.WriteLine($"Response Body: {responseBody}");
+            // Directly assert JSON deserializationa
+            var patients = JsonConvert.DeserializeObject<List<PatientDTO>>(responseBody);
 
-            // Fail if response is not 200 OK
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode,
-                $"Expected status code 200 OK, but got {response.StatusCode}. Response body: {responseBody}");
-
-            // Ensure the response is valid JSON before deserialization
-            Assert.IsTrue(responseBody.StartsWith("{") || responseBody.StartsWith("["),
-                $"Response is not valid JSON. Response body: {responseBody}");
-
-            // Parse JSON safely
-            try
-            {
-                var patients = JsonConvert.DeserializeObject<List<PatientDTO>>(responseBody);
-                Assert.IsNotNull(patients, "Patients list should not be null.");
-                Assert.IsTrue(patients.Count >= 0,
-                    $"Unexpected patient count. Response Body: {responseBody}");
-            }
-            catch (JsonException ex)
-            {
-                Assert.Fail($"JSON deserialization failed: {ex.Message} \nResponse Body: {responseBody}");
-            }
+            // Basic assertions
+            Assert.IsNotNull(patients);
+            Assert.IsTrue(patients.Count > 0);  // Ensure there's at least one patient
         }
-
-
-
-
-
-
 
         [Test]
         public async Task GetPatients_ReturnsListOfPatients()
